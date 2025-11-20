@@ -1,0 +1,1 @@
+User → Browser → EC2 Instance → Apache Server → Mounted EBS Volume → index.html

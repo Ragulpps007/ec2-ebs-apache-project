@@ -1,0 +1,10 @@
+1. Launch EC2 instance (Amazon Linux)
+2. Attach 8GB EBS volume
+3. Connect using SSH
+4. Format EBS volume (XFS filesystem)
+5. Mount EBS to /mydata
+6. Install Apache
+7. Create website file in /mydata
+8. Change Apache DocumentRoot to /mydata
+9. Restart Apache
+10. Test the website using EC2 public IP
