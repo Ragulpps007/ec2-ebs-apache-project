@@ -1,161 +1,127 @@
-# ✅ EC2 + EBS + Apache Web Hosting Project
+# 🖥️ EC2 + EBS + Apache Web Server on AWS
 
-This project demonstrates how to host a website on an Amazon EC2 instance using a mounted EBS volume as the Apache DocumentRoot. It highlights **end-to-end cloud setup, server configuration, storage management, and public website deployment**.
+![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20EBS%20%7C%20CloudWatch-orange?logo=amazon-aws)
+![Linux](https://img.shields.io/badge/Linux-Ubuntu-blue?logo=linux)
+![Apache](https://img.shields.io/badge/Web%20Server-Apache2-red?logo=apache)
+![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
 
----
+## 📌 Project Overview
 
-## 🚀 Project Overview
-
-In this project, we:
-
-1. Launched an EC2 instance (Amazon Linux 2)  
-2. Created and attached an EBS volume  
-3. Mounted the EBS volume to `/mydata`  
-4. Installed and configured Apache HTTP Server  
-5. Updated Apache DocumentRoot to point to the EBS volume  
-6. Deployed a simple HTML webpage  
-7. Hosted the website publicly using EC2 Security Groups  
-8. Tested the website using the EC2 public IP
+This project demonstrates how to host an Apache web server on an AWS EC2 instance with an EBS volume as the document root. It includes CloudWatch monitoring for real-time health tracking.
 
 ---
 
-## 🏗 Architecture
+## 🏗️ Architecture
 
 ```
-User → EC2 Instance → Apache HTTP Server → EBS Volume (/mydata)
+┌─────────────────────────────────────────────┐
+│                  AWS Cloud                  │
+│                                             │
+│   ┌──────────┐      ┌──────────────────┐   │
+│   │  EC2     │─────▶│  EBS Volume      │   │
+│   │ Instance │      │  (DocumentRoot)  │   │
+│   └──────────┘      └──────────────────┘   │
+│        │                                    │
+│        ▼                                    │
+│   ┌──────────────┐   ┌──────────────────┐  │
+│   │    Apache    │   │   CloudWatch     │  │
+│   │  Web Server  │   │   Monitoring     │  │
+│   └──────────────┘   └──────────────────┘  │
+└─────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🖥 Technologies Used
+## 🛠️ Tech Stack
 
-- AWS EC2 (Linux)  
-- AWS EBS (Persistent Storage)  
-- Apache HTTP Server  
-- Linux Commands & Shell  
-- Security Groups (Inbound Ports: 22, 80)  
-- File System Management & Mounting  
+| Tool | Purpose |
+|------|---------|
+| AWS EC2 | Virtual machine to host the web server |
+| AWS EBS | Persistent block storage for web content |
+| Apache2 | HTTP web server |
+| AWS CloudWatch | CPU, disk, and memory monitoring |
+| Ubuntu Linux | Operating system |
 
 ---
 
-## 📌 Step-by-Step Implementation
+## ⚙️ What Was Done
 
-### 1️⃣ Launch EC2 Instance
-- AMI: Amazon Linux 2  
-- Instance Type: t2.micro (Free Tier)  
-- Security Group: Allow SSH (22) & HTTP (80)  
+- ✅ Launched EC2 instance on AWS (Ubuntu)
+- ✅ Created and attached an EBS volume to the instance
+- ✅ Mounted EBS volume and configured Apache `DocumentRoot` to point to it
+- ✅ Deployed and tested a sample web page from the EBS volume
+- ✅ Configured CloudWatch alarms for CPU utilization monitoring
+- ✅ Verified web server availability via public IP
 
-### 2️⃣ Create and Attach EBS Volume
-- Size: 1–5 GB  
-- Type: gp2/gp3  
-- Same Availability Zone as EC2  
-- Attach to `/dev/xvdf`  
+---
 
-### 3️⃣ Format and Mount EBS Volume
+## 📋 Step-by-Step Setup
 
+### 1. Launch EC2 Instance
+```bash
+# AMI: Ubuntu 22.04 LTS
+# Instance type: t2.micro (Free Tier)
+# Security Group: Allow HTTP (80), HTTPS (443), SSH (22)
+```
+
+### 2. Create & Attach EBS Volume
+```bash
+# Create volume in same AZ as EC2
+# Attach as /dev/xvdf
+```
+
+### 3. Mount EBS Volume
 ```bash
 sudo mkfs.ext4 /dev/xvdf
-sudo mkdir /mydata
-sudo mount /dev/xvdf /mydata
+sudo mkdir /mnt/webdata
+sudo mount /dev/xvdf /mnt/webdata
+
+# Make persistent on reboot
+echo '/dev/xvdf /mnt/webdata ext4 defaults,nofail 0 2' | sudo tee -a /etc/fstab
 ```
 
-Make the mount permanent:
-
+### 4. Install Apache & Configure DocumentRoot
 ```bash
-sudo blkid
-sudo nano /etc/fstab
-# Add:
-/dev/xvdf   /mydata   ext4   defaults,nofail   0   2
+sudo apt update && sudo apt install apache2 -y
+
+# Edit Apache config
+sudo nano /etc/apache2/sites-available/000-default.conf
+# Change DocumentRoot to /mnt/webdata
+
+sudo systemctl restart apache2
 ```
 
-### 4️⃣ Install Apache Web Server
-
+### 5. Deploy Web Content
 ```bash
-sudo yum install httpd -y
-sudo systemctl start httpd
-sudo systemctl enable httpd
+sudo chown -R www-data:www-data /mnt/webdata
+echo "<h1>Hello from EBS-backed Apache Server!</h1>" | sudo tee /mnt/webdata/index.html
 ```
 
-### 5️⃣ Update Apache DocumentRoot
-
-Edit config:
-
+### 6. CloudWatch Monitoring
 ```bash
-sudo nano /etc/httpd/conf/httpd.conf
+# Installed CloudWatch agent
+# Configured CPU alarm: alert if CPU > 70% for 5 minutes
 ```
-
-Change:
-
-```
-DocumentRoot "/var/www/html"
-```
-
-to:
-
-```
-DocumentRoot "/mydata"
-```
-
-Update `<Directory>` block:
-
-```apache
-<Directory "/mydata">
-    AllowOverride None
-    Require all granted
-</Directory>
-```
-
-Restart Apache:
-
-```bash
-sudo systemctl restart httpd
-```
-
-### 6️⃣ Deploy Webpage on EBS Volume
-
-```bash
-echo "<h1>Welcome to my website hosted on EBS Volume!</h1>" | sudo tee /mydata/index.html
-```
-
-### 7️⃣ Test the Website
-
-- Open browser → `http://<your-ec2-public-ip>`  
-- Verify content is served from the EBS volume  
-- Reboot EC2 → check data persists (EBS persistence)
 
 ---
 
-## 🛠 Troubleshooting
+## 📸 Key Learnings
 
-| Issue | Root Cause | Solution |
-|-------|------------|---------|
-| Website not loading | Port 80 blocked | Update Security Group inbound rule |
-| Apache not starting | Service failure | `sudo systemctl restart httpd` |
-| EBS volume not mounted | Wrong device name / fstab config | Check `/dev/xvdf` & fstab entry |
-
----
-
-## 📊 Skills Demonstrated
-
-✔ EC2 deployment & Linux administration  
-✔ EBS volume setup & persistent storage  
-✔ Apache Web Server configuration  
-✔ Security Groups & network configuration  
-✔ Troubleshooting & monitoring  
-✔ Web hosting best practices  
+- How EBS volumes differ from instance store (persistent vs ephemeral)
+- Apache DocumentRoot configuration and virtual hosts
+- CloudWatch alarm setup for proactive monitoring
+- Linux disk mounting and fstab persistence
 
 ---
 
-## 🚀 Future Enhancements
+## 🔗 Related Projects
 
-- Enable HTTPS with SSL/ACM  
-- Configure auto-scaling and Load Balancer  
-- Automate deployment using CI/CD pipeline  
+- [aws-devops-projects](../aws-devops-projects) — More AWS infrastructure projects
+- [aws-cloud-support-practice](../aws-cloud-support-practice) — AWS support scenarios
 
 ---
 
-## 🖼 Outputs & Screenshots
+## 👤 Author
 
-- EC2 instance running in AWS Console  
-- Mounted EBS folder showing website files  
-- Browser showing hosted webpage  
+**Ragul P** — AWS Certified Cloud Practitioner  
+[LinkedIn](https://linkedin.com/in/ragul-p-16b757289) | [GitHub](https://github.com/Ragulpps007)
